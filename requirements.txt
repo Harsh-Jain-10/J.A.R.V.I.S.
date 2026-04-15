@@ -1,0 +1,22 @@
+speechrecognition
+sounddevice
+setuptools          # FIX Bug 2: required for openai-whisper C extension build on Python 3.14
+openai-whisper>=20231117  # FIX Bug 2: pinned to avoid broken older releases
+edge-tts
+google-genai
+playsound==1.2.2
+groq
+duckduckgo-search
+wikipedia
+requests
+newsapi-python
+pyautogui
+psutil
+pyperclip
+keyboard
+apscheduler
+pillow
+python-dotenv
+numpy
+pycaw
+comtypes
