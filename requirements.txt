@@ -1,7 +1,7 @@
 speechrecognition
 sounddevice
-setuptools          # FIX Bug 2: required for openai-whisper C extension build on Python 3.14
-openai-whisper>=20231117  # FIX Bug 2: pinned to avoid broken older releases
+setuptools         
+openai-whisper>=20231117  
 edge-tts
 google-genai
 playsound==1.2.2
