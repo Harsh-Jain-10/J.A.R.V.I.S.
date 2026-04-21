@@ -19,28 +19,27 @@ GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 OPENWEATHER_API_KEY: str = os.getenv("OPENWEATHER_API_KEY", "")
 NEWS_API_KEY: str = os.getenv("NEWS_API_KEY", "")
 
-# ── Groq (primary LLM — fast cloud inference, generous free tier) ─────────────
+# ── Groq 
 GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-# Other solid free options: llama-3.1-8b-instant (faster), mixtral-8x7b-32768
 
-# ── Gemini (fallback LLM — used when Groq rate limit is hit) ─────────────────
+
+# ── Gemini (fallback LLM )
 GEMINI_MODEL: str = "gemini-2.0-flash"
 
 # ── Voice / STT ───────────────────────────────────────────────────────────────
 WHISPER_MODEL: str = "base"      # tiny | base | small | medium | large
 WAKE_WORDS: list[str] = ["hey jarvis", "jarvis"]
 MIC_ENERGY_THRESHOLD: int = 300  # calibrated automatically on startup
-SPEECH_PHRASE_TIMEOUT: float = 3.0    # FIX: was 1.0 — too short for natural speech
+SPEECH_PHRASE_TIMEOUT: float = 3.0   
 SPEECH_TIMEOUT: float = 10.0
 
 # ── TTS ───────────────────────────────────────────────────────────────────────
-TTS_VOICE: str = "en-GB-RyanNeural"  # FIX Bug 4: ChristopherNeural caused 'No audio received'; RyanNeural is confirmed working and closest to MCU JARVIS
+TTS_VOICE: str = "en-GB-RyanNeural" 
 TTS_RATE: str = "-8%"       # Slightly slower = more authoritative, less robotic
 TTS_VOLUME: str = "+0%"
 TTS_OUTPUT_FILE: str = "jarvis_tts_output.mp3"
 
-# Phonetic name used in speech (avoids TTS saying 'Harsh' like the English adjective)
-# Set USER_NAME_PHONETIC in .env to override, e.g. USER_NAME_PHONETIC=Haarsh
+
 USER_NAME_PHONETIC: str = os.getenv("USER_NAME_PHONETIC", USER_NAME)
 
 # ── Memory ────────────────────────────────────────────────────────────────────
