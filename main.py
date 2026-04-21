@@ -49,9 +49,9 @@ from skills import (
 )
 
 # ── Scheduler ─────────────────────────────────────────────────────────────────
-from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
-from apscheduler.triggers.cron import CronTrigger  # type: ignore
-from apscheduler.triggers.interval import IntervalTrigger  # type: ignore
+from apscheduler.schedulers.background import BackgroundScheduler  
+from apscheduler.triggers.cron import CronTrigger  
+from apscheduler.triggers.interval import IntervalTrigger 
 from config import (
     NIGHTLY_SUMMARY_HOUR,
     NIGHTLY_SUMMARY_MINUTE,
@@ -65,7 +65,7 @@ from memory.summarizer import run_nightly_summarization
 # Global state
 # ─────────────────────────────────────────────────────────────────────────────
 
-brain: Brain = None  # type: ignore
+brain: Brain = None  
 _running: bool = True
 
 
