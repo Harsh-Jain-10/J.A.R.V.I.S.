@@ -8,7 +8,6 @@ from memory.db import add_reminder, list_upcoming_reminders
 
 logger = logging.getLogger(__name__)
 
-
 def _parse_datetime(query: str) -> Optional[datetime]:
     """
     Attempt to parse a datetime from natural language.
