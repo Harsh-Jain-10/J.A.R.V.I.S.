@@ -66,7 +66,6 @@ def _parse_datetime(query: str) -> Optional[datetime]:
     return None
 
 
-
 def _extract_title(query: str) -> str:
     """Extract reminder title from query like 'remind me to drink water at 3pm'."""
     lower = query.lower()
