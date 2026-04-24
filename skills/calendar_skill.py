@@ -19,7 +19,7 @@ def _parse_datetime(query: str) -> Optional[datetime]:
     # Normalise Whisper quirk: 'at 12.34pm' → 'at 12:34pm'
     lower = re.sub(r'(\d{1,2})\.(\d{2})\s*(am|pm)', r'\1:\2\3', query.lower())
 
-    # ── Relative: "in/after X seconds/minutes/hours" ──────────────────────────
+    # ── Relative: "in/after X seconds/minutes/hours" ────────────────────────
     rel_match = re.search(
         r'(?:in|after)\s+(\d+)\s+(second|seconds|sec|minute|minutes|min|hour|hours|hr)',
         lower,
