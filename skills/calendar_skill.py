@@ -1,10 +1,3 @@
-"""
-skills/calendar_skill.py — Reminders and calendar management for J.A.R.V.I.S.
-
-Uses SQLite (memory/db.py) for persistence.
-Parses natural language time expressions like "at 3pm", "in 10 minutes",
-"tomorrow at 9am".
-"""
 
 import logging
 import re
