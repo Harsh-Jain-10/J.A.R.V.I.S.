@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_SEARCH_ROOT = Path.home()   # Start searches from user's home directory
 
-
 def _find_files(name: str, root: Optional[Path] = None) -> list[Path]:
     """Recursively search for files matching *name* under *root*."""
     root = root or _DEFAULT_SEARCH_ROOT
