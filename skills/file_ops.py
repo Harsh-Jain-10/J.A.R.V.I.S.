@@ -1,12 +1,4 @@
-"""
-skills/file_ops.py — File and folder operations skill for J.A.R.V.I.S.
 
-Capabilities:
-  • Find files by name (recursive search)
-  • Read and summarize text files
-  • List directory contents
-  • Open files with the default application
-"""
 
 import logging
 import os
