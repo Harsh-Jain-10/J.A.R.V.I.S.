@@ -151,7 +151,6 @@ def _extract_path(query: str) -> Optional[str]:
         return match.group(0)
     return None
 
-
 def _extract_filename(query: str) -> str:
     """Extract what the user wants to search for."""
     triggers = ["find ", "search for ", "locate ", "find file ", "search file "]
