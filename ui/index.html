@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>J.A.R.V.I.S. v2.0</title>
+  <link rel="stylesheet" href="style.css?v=2.2" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════
+       HUD Corner Decorations (purely decorative SVG lines)
+       ══════════════════════════════════════════════════ -->
+  <div class="corner corner--tl" aria-hidden="true"></div>
+  <div class="corner corner--tr" aria-hidden="true"></div>
+  <div class="corner corner--bl" aria-hidden="true"></div>
+  <div class="corner corner--br" aria-hidden="true"></div>
+
+  <!-- ══════════════════════════════════════════════════
+       HEADER
+       ══════════════════════════════════════════════════ -->
+  <header class="hud-header" role="banner">
+    <div class="header-left">
+      <span class="brand-name">J.A.R.V.I.S.</span>
+      <span class="brand-version">v2.0</span>
+    </div>
+
+    <div class="header-center">
+      <div id="live-clock" class="live-clock" aria-live="polite" aria-label="Current time"></div>
+    </div>
+
+    <div class="header-right">
+      <div class="status-badge" id="status-badge" aria-label="System status">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="status-text" id="status-text">ONLINE</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" aria-label="Open settings" title="Settings">
+        <!-- Settings cog SVG -->
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════
+       MAIN — Core Visualizer
+       ══════════════════════════════════════════════════ -->
+  <main class="hud-main" role="main">
+
+    <!-- Decorative scan line ring around the canvas -->
+    <div class="visualizer-wrapper" aria-label="JARVIS core visualizer">
+      <div class="scan-ring scan-ring--outer" aria-hidden="true"></div>
+      <div class="scan-ring scan-ring--mid"   aria-hidden="true"></div>
+
+      <canvas id="visualizer" width="220" height="220" aria-label="Animated status visualizer"></canvas>
+
+      <!-- Tiny ticker labels around the ring -->
+      <div class="ring-label ring-label--top"    aria-hidden="true">NEURAL CORE</div>
+      <div class="ring-label ring-label--bottom" aria-hidden="true">ARC REACTOR v2</div>
+    </div>
+
+    <!-- State label below the visualizer -->
+    <div class="state-display" aria-live="polite" aria-atomic="true">
+      <span class="state-prefix">STATUS //</span>
+      <span class="state-name" id="state-label">IDLE</span>
+    </div>
+
+    <!-- Conversation transcript -->
+    <div class="transcript-box" id="transcript-box" aria-live="polite" aria-label="Conversation transcript">
+      <div class="transcript-line transcript-line--jarvis">
+        <span class="transcript-tag">JARVIS</span>
+        <span class="transcript-text">Systems online. Good evening, Sir.</span>
+      </div>
+    </div>
+
+    <!-- ── Info Panel (slide-out cards) ─────────────────── -->
+    <section class="info-panel" id="info-panel" aria-label="Information cards" aria-hidden="true">
+      <div class="panel-inner" id="panel-inner">
+        <!-- Cards are injected here dynamically via JS -->
+      </div>
+      <button class="panel-close-btn" id="panel-close-btn" aria-label="Close information panel">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        CLOSE
+      </button>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════════════════════════
+       FOOTER — REPL Chat Bar
+       ══════════════════════════════════════════════════ -->
+  <footer class="hud-footer" role="contentinfo">
+    <form class="repl-form" id="repl-form" autocomplete="off" aria-label="Command input">
+      <label for="repl-input" class="sr-only">Enter a command for JARVIS</label>
+      <!-- Mic icon prefix -->
+      <span class="repl-prefix" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8"  y1="23" x2="16" y2="23"/>
+        </svg>
+      </span>
+      <input
+        type="text"
+        id="repl-input"
+        class="repl-input"
+        placeholder="JARVIS... ask anything"
+        aria-label="Type a command"
+        spellcheck="false"
+        autocorrect="off"
+      />
+      <button type="submit" class="repl-submit" id="repl-submit" aria-label="Send command">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </form>
+
+    <div class="footer-meta" aria-hidden="true">
+      <span class="footer-meta-item">STARK INDUSTRIES</span>
+      <span class="footer-meta-sep">·</span>
+      <span class="footer-meta-item" id="footer-model">GEMINI 2.5 FLASH</span>
+      <span class="footer-meta-sep">·</span>
+      <span class="footer-meta-item" id="ws-status">WS: CONNECTING</span>
+    </div>
+  </footer>
+
+  <!-- Settings Modal -->
+  <div class="modal-overlay" id="settings-modal" role="dialog" aria-modal="true" aria-label="Settings" hidden>
+    <div class="modal-card">
+      <h2 class="modal-title">Settings</h2>
+      <div class="modal-row">
+        <label class="modal-label" for="ws-url-input">WebSocket URL</label>
+        <input type="text" id="ws-url-input" class="modal-input" value="ws://localhost:8000" />
+      </div>
+      <div class="modal-row">
+        <label class="modal-label" for="opacity-slider">Panel Opacity</label>
+        <input type="range" id="opacity-slider" min="20" max="95" value="75" class="modal-slider" />
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn modal-btn--cancel" id="settings-cancel">Cancel</button>
+        <button class="modal-btn modal-btn--save"   id="settings-save">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=2.2"></script>
+</body>
+</html>

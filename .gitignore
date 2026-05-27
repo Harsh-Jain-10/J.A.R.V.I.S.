@@ -1,0 +1,24 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & secrets (CRITICAL: DO NOT UPLOAD)
+.env
+
+# Database & logs (contain personal conversation memory)
+jarvis_memory.db
+jarvis.log
+
+# User screenshots taken by J.A.R.V.I.S.
+screenshots/
+
+# OS-specific files
+Thumbs.db
+Desktop.ini
+.DS_Store

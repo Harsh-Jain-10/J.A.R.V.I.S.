@@ -1,0 +1,437 @@
+================================================================================
+🤖 J.A.R.V.I.S. (Just A Rather Very Intelligent System) — COMPLETE PROJECT DETAILS
+================================================================================
+
+This document provides a highly detailed description of the J.A.R.V.I.S. local/hybrid
+AI voice assistant. It covers the system architecture, file/folder structures,
+code implementation details, database schemas, natural language routing rules, 
+voice pipelines (STT & TTS), schedulers, background threads, and environmental
+configurations.
+
+---
+
+Table of Contents:
+1. Executive Summary & Architecture
+2. File and Directory Structure
+3. Environment Variables & Central Configuration (config.py)
+4. System Database Schema (SQLite)
+5. Core System Modules (Deep-Dive)
+   5.1 Entry Point (main.py)
+   5.2 Multi-LLM Orchestrator (core/brain.py)
+   5.3 Wake-Word & Speech-To-Text (core/listener.py)
+   5.4 Text-To-Speech Synthesizer (core/speaker.py)
+   5.5 Intent Classification Router (core/intent_router.py)
+6. Memory and Context System (Deep-Dive)
+   6.1 SQLite CRUD Layer (memory/db.py)
+   6.2 Prompt Context Builder (memory/context_manager.py)
+   6.3 Nightly Summarization Engine (memory/summarizer.py)
+7. Built-in Skills (Deep-Dive)
+   7.1 Weather & Forecast (skills/weather.py)
+   7.2 News Headlines (skills/news.py)
+   7.3 Web Search & Wikipedia (skills/web_search.py)
+   7.4 System Control & Resource Monitoring (skills/system_control.py)
+   7.5 File & Folder Operations (skills/file_ops.py)
+   7.6 Reminders & Calendar (skills/calendar_skill.py)
+   7.7 Browser Control & Clipboard (skills/browser_control.py)
+   7.8 Image Analysis (skills/image_input.py)
+   7.9 Proactive System Monitoring (skills/proactive.py)
+8. Background Task Schedulers & Concurrency
+9. Advanced Bug Fixes & Optimizations History
+10. External Libraries & System Dependencies
+
+================================================================================
+1. EXECUTIVE SUMMARY & ARCHITECTURE
+================================================================================
+
+J.A.R.V.I.S. is an offline-first/hybrid digital assistant inspired by Iron Man's 
+system, written in Python 3.14.3. The assistant runs on Windows with features
+like local offline transcription, cloud-based high-speed LLM processing with
+robust fallback chains, natural British neural speech generation, SQLite-backed
+contextual memory, natural time-based reminders, and background health alerts.
+
+High-Level Architecture & Command Flow:
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                                                                              │
+│    [Microphone Capture] ──> (Offline Wake-Word Detection: "Hey JARVIS")      │
+│                                           │                                  │
+│                                           ▼                                  │
+│                    (Active Listener Pipeline: Captures Audio)                │
+│                                           │                                  │
+│                                           ▼                                  │
+│                 [Speech-To-Text (STT) Transcription Pipeline]                │
+│             Groq whisper-large-v3 ─(fallback)─> Gemini 2.0 Flash             │
+│            ─(fallback)─> Local Whisper (Tiny) ─(fallback)─> Google STT       │
+│                                           │                                  │
+│                                           ▼                                  │
+│                 [Intent Classifier / Router (Fuzzy Regex + LLM)]             │
+│                                           │                                  │
+│               ┌───────────────────────────┴───────────────────────────┐      │
+│               ▼                                                       ▼      │
+│       [Skill Handler] (If Skill matched)                [Chat / Context Model]│
+│    (Weather, News, App Launch, File Ops, etc)           (Injects past convo   │
+│               │                                          context + summaries)│
+│               ▼                                                       ▼      │
+│     [Generate Text Response] <────────────────────────── [Brain Response]    │
+│               │                                                              │
+│               ▼                                                              │
+│     [Text-To-Speech (TTS)] ──> (edge-tts: en-GB-RyanNeural) ──> [Play Audio] │
+│               │                                                              │
+│               ▼                                                              │
+│     [Database Persistence] ──> (Save exchange: SQLite conversations table)   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+2. FILE AND DIRECTORY STRUCTURE
+================================================================================
+
+Below is the directory structure mapping of the J.A.R.V.I.S. codebase:
+
+JARVIS/
+├── .env                       # API keys, user info, and configuration secrets
+├── .env.example               # Template showing required variables for .env
+├── README.md                  # System overview, prerequisites, and instructions
+├── config.py                  # Identity, TTS voices, limits, and system settings
+├── requirements.txt           # Python library dependencies
+├── main.py                    # Entry point; runs loops, thread configurations, scheduler
+├── jarvis_memory.db           # SQLite database holding conversations & reminders
+├── jarvis.log                 # Log files containing traces of operations
+├── test_all.py                # Unit and integration tests for core modules
+├── test_audio.py              # Script to test sound capture, playback, and STT
+├── screenshots/               # Directory containing screenshot captures
+├── core/                      # Main pipelines
+│   ├── __init__.py            # Module initialization
+│   ├── brain.py               # Unified LLM layers (Groq API, Gemini API fallback)
+│   ├── listener.py            # Audio recording, calibrations, and STT chain
+│   ├── speaker.py             # TTS synthesis via edge-tts and system output
+│   └── intent_router.py       # Input mapping via regex strings & LLM evaluation
+├── memory/                    # SQLite interaction layer
+│   ├── __init__.py            # Module initialization
+│   ├── db.py                  # SQLite CRUD calls for tables
+│   ├── context_manager.py     # Prompt string generation injecting summaries & history
+│   └── summarizer.py          # Daily conversation summaries scheduler task
+└── skills/                    # Function modules invoked by intents
+    ├── __init__.py            # Module initialization
+    ├── weather.py             # OpenWeatherMap current info & forecasts
+    ├── news.py                # Headlines extraction via NewsAPI
+    ├── web_search.py          # DuckDuckGo and Wikipedia lookup
+    ├── system_control.py      # Apps launch/close, mute, volume, power, screenshot
+    ├── file_ops.py            # Local files recursive search, read, list, and open
+    ├── calendar_skill.py      # Reminders parser and calendar listing
+    ├── browser_control.py     # Web browser site navigation and clipboard operations
+    ├── image_input.py         # Image processing via Gemini Vision models
+    └── proactive.py           # Background schedulers for CPU, battery, and reminders
+
+================================================================================
+3. ENVIRONMENT VARIABLES & CENTRAL CONFIGURATION (config.py)
+================================================================================
+
+Identity and API credentials are kept in a `.env` file at the root. The file 
+contains the following keys:
+  • GEMINI_API_KEY: Google Gemini API key (fallback LLM, vision, and STT).
+  • GROQ_API_KEY: Groq API key (primary cloud LLM and STT).
+  • OPENWEATHER_API_KEY: OpenWeatherMap API key for weather data.
+  • NEWS_API_KEY: NewsAPI developer key for headlines.
+  • USER_NAME: User name (e.g. Harsh).
+  • USER_NAME_PHONETIC: Phonetic name (e.g. Haarsh) to guide TTS pronunciation.
+  • CITY: User default city (e.g. Sonipat).
+
+Central Configuration File (config.py):
+Parses the environment variables via `python-dotenv` and defines:
+  • Primary LLM: `llama-3.3-70b-versatile` running on Groq Cloud LPU.
+  • Fallback LLM: `gemini-2.5-flash` on Google AI Studio.
+  • Voice: `en-GB-RyanNeural` (Microsoft Edge neural voice).
+  • Voice Rate & Volume: `-8%` speed (MCU formal pace) and `+0%` volume.
+  • Output Audio: `jarvis_tts_output.mp3` for temp voice files.
+  • Whisper Model: Pinned to `tiny` for quick local load fallback.
+  • DB Path: `jarvis_memory.db`.
+  • Context Limits: 10 recent messages, 3 days of daily summaries.
+  • Proactive Alarms: CPU alert (>90%), battery alert (<20%).
+  • Schedules: Daily summary run time (23:59), reminders check (60s).
+  • Energy Calibration: 300 RMS starting threshold (captures soft speaking).
+  • Speech Timeouts: 3.0s phrase timeout, 10.0s total speech timeout.
+
+================================================================================
+4. SYSTEM DATABASE SCHEMA (SQLite)
+================================================================================
+
+The SQLite database (`jarvis_memory.db`) contains three tables created on startup 
+by `memory.db.initialize_db()`:
+
+1. `conversations` Table
+Presents the transaction history of inputs and outputs:
+  • `id` (INTEGER, Primary Key, Autoincrement)
+  • `date` (TEXT, YYYY-MM-DD format, indexing helper)
+  • `timestamp` (TEXT, ISO-8601 string: YYYY-MM-DDTHH:MM:SS)
+  • `user_input` (TEXT, raw user query transcribed)
+  • `jarvis_response` (TEXT, raw assistant response spoken)
+  • `summary` (TEXT, default '', optional block summary fields)
+
+2. `summaries` Table
+Saves nightly compiled summaries to limit prompt sizes:
+  • `id` (INTEGER, Primary Key, Autoincrement)
+  • `date` (TEXT, UNIQUE key, YYYY-MM-DD)
+  • `summary` (TEXT, 5-bullet summary text generated by LLM)
+
+3. `reminders` Table
+Holds time-scheduled tasks checked by background routines:
+  • `id` (INTEGER, Primary Key, Autoincrement)
+  • `title` (TEXT, name of the reminder extracted from input)
+  • `datetime` (TEXT, target execution time in YYYY-MM-DDTHH:MM:SS format)
+  • `repeat` (TEXT, default 'none' — 'daily', 'weekly', etc.)
+  • `triggered` (INTEGER, default 0 — flag indicating if spoken)
+
+================================================================================
+5. CORE SYSTEM MODULES (DEEP-DIVE)
+================================================================================
+
+5.1 Entry Point (main.py)
+Initializes the system:
+  1. Configures global UTF-8 encoding streams for log file and terminal printing.
+  2. Runs `initialize_db()` to set up SQLite.
+  3. Spawns `Brain()`.
+  4. Starts background jobs via APScheduler:
+     - `reminder_check`: run `proactive.check_reminders` (every 60s).
+     - `proactive_monitor`: run `proactive.check_system_resources` (every 60s).
+     - `nightly_summary`: run `memory.summarizer.run_nightly_summarization` (daily).
+  5. Determines operational mode:
+     - Text REPL: If `--text` or `--debug` parameters exist, starts command shell 
+       `_run_text_mode()`.
+     - Voice Mode (Default): Runs `_run_voice_mode()`, starting 
+       `WakeWordListener` daemon thread listening to mic.
+  6. Implements event loop `handle_input(user_text)` which runs intent routing, 
+     skill execution, speech feedback, and DB save.
+
+5.2 Multi-LLM Orchestrator (core/brain.py)
+Orchestrates requests across cloud APIs:
+  • Primary (Groq): Uses `llama-3.3-70b-versatile`. Returns response within 0.5s 
+    with meta-data rules. Automatically checks for rate limits (429) or connection 
+    refusal.
+  • Fallback (Gemini): Switches to `gemini-2.5-flash` if Groq fails or hits rate 
+    limits.
+  • Raw Prompts (`ask_raw`): Requests without historical context, used for nightly 
+    summaries and intent router evaluations.
+  • Image Input (`analyze_image`): Opens local files via PIL (`PIL.Image.open`), and sends them along with the user's question to the `gemini-2.5-flash` model using `_genai_client.models.generate_content` and the new `google-genai` SDK structures (`contents=[question, img]` and `GenerateContentConfig(system_instruction=SYSTEM_PROMPT)`).
+
+5.3 Wake-Word & Speech-To-Text (core/listener.py)
+Monitors default microphone using a background thread:
+  • Calibration: `calibrate_threshold_with_stream` records 1 second of background 
+    noise to calculate speech thresholds dynamically.
+  • Noise Gate: SPEECH_START_THRESHOLD (RMS >300 starts recording, adjusted 
+    for softer consonants), SILENCE_END_THRESHOLD (RMS <150 indicates silence).
+  • Record Thread: Reads 100ms chunks from `sounddevice`. Captures up to 15s. 
+    Maintains a 500ms pre-buffer queue to prevent clipping the first syllable.
+  • Whisper Hallucination Filter: Cleans common Whisper patterns from output 
+    like leading digits, filler text ("Thank you.", "Bye."), and trailing punctuation.
+  • Whisper Word Joins: Normalizes spaced words like "screen shot" to "screenshot".
+  • STT Pipeline:
+    1. Groq Cloud (whisper-large-v3) - fastest and most accurate.
+    2. Gemini Cloud (gemini-2.5-flash audio upload) - fallback.
+    3. Local Whisper (tiny model running on CPU) - offline fallback.
+    4. Google speech-recognition (free tier) - internet fallback.
+  • Modes:
+    - Passive: Awaiting "Hey JARVIS" or "JARVIS".
+    - Active: Fast conversation mode without wake word. Times out after 20s 
+      of silence.
+
+5.4 Text-To-Speech Synthesizer (core/speaker.py)
+Converts text responses to natural British neural speech:
+  • Strips formatting characters (like `**`, `*`, `#`, `\``) so they aren't spoken.
+  • Replaces the user's name with `USER_NAME_PHONETIC` for correct pronunciation.
+  • edge-tts Client: Generates an MP3 file in a temporary folder.
+  • Playback Engine (`_play_audio`): Tries `playsound==1.2.2`. If missing, tries 
+    `pygame.mixer`. On failure, falls back to Windows system call `os.startfile`.
+  • Thread Safety: Wraps playback in a separate thread so calls block until complete, 
+    preventing overlapping speech. Also includes `speak_async_fire` for background alerts.
+
+5.5 Intent Classification Router (core/intent_router.py)
+Routes transcribed user input to target actions:
+  • Fast Path (Keyword Match): Checks for matching phrases defined in a list.
+  • Fuzzy Maps: Pre-processes phonetic mishearings (e.g. "volume app" to "volume up", 
+    "whether" to "weather", "remember me to" to "remind me to") before keyword matching.
+  • Slow Path (LLM Router): Sends input to `brain.classify_intent` for classification 
+    if no keywords match. Returns fallback intent "CHAT".
+
+================================================================================
+6. MEMORY AND CONTEXT SYSTEM (DEEP-DIVE)
+================================================================================
+
+6.1 SQLite CRUD Layer (memory/db.py)
+Provides SQLite access:
+  • Uses `check_same_thread=False` with `sqlite3.Row` for thread-safe access.
+  • `save_conversation`: Saves user input and response with date and time.
+  • `get_today_conversations`: Retrieves the last N conversations from today.
+  • `save_summary`: Saves daily summaries.
+  • `get_recent_summaries`: Retrieves summaries from previous days, excluding today.
+  • `add_reminder`: Adds a scheduled reminder.
+  • `get_due_reminders`: Gets reminders with status `triggered=0` and past execution time.
+  • `mark_reminder_triggered`: Sets triggered to 1.
+
+6.2 Prompt Context Builder (memory/context_manager.py)
+Builds context for LLM prompts:
+  • Queries `db.get_today_conversations()` (up to CONTEXT_RECENT_MESSAGES).
+  • Queries `db.get_recent_summaries()` (up to CONTEXT_DAILY_SUMMARIES).
+  • Concatenates results into a context block:
+    ```
+    === JARVIS CONTEXTUAL MEMORY ===
+    [MEMORY — Today's Conversation History]
+      [Timestamp] User: query
+                  JARVIS: response
+    [MEMORY — Recent Daily Summaries]
+      YYYY-MM-DD: Summary bullets
+    === END OF MEMORY CONTEXT ===
+    ```
+  • Prepends the block to the current user query.
+
+6.3 Nightly Summarization Engine (memory/summarizer.py)
+Scheduled to run at 23:59:
+  1. Queries all conversations from the current date.
+  2. Compiles a summarization prompt.
+  3. Sends the prompt to the primary LLM to generate exactly 5 bullet points.
+  4. Falls back to a keyword snippet summary if the LLM is unreachable.
+  5. Saves the result to the `summaries` table.
+
+================================================================================
+7. BUILT-IN SKILLS (DEEP-DIVE)
+================================================================================
+
+7.1 Weather & Forecast (skills/weather.py)
+Current weather and forecast skill:
+  • City Extraction: Uses regex to match text after prepositions (in, for, at, 
+    from) or adjacent to weather terms. Defaults to configured city.
+  • Weather Request: Calls OpenWeatherMap current weather API. Converts temperature 
+    from Kelvin to Celsius.
+  • Forecast Request: Calls 5-day/3-hour forecast API, grouping results into a 
+    3-day forecast.
+
+7.2 News Headlines (skills/news.py)
+Top headlines skill:
+  • Keyword Mapping: Maps terms like "sports", "tech", "science", "health", 
+    "business" to categories.
+  • API request: Calls NewsAPI headlines endpoint. If no category matches, defaults 
+    to US headlines. Returns up to 5 articles with titles and sources.
+
+7.3 Web Search & Wikipedia (skills/web_search.py)
+Factual query fallback:
+  • Trigger: Runs if intent routing matches WEB_SEARCH.
+  • Wikipedia Search: Checked for informational terms ("who is", "what is", "define"). 
+    Resolves ambiguous terms by picking the first option.
+  • DuckDuckGo Search: Used for general searches. Returns top 3 results with titles, 
+    snippets, and URLs.
+  • LLM Summary: Sends raw search results to the LLM to write a 2-3 sentence summary.
+
+7.4 System Control & Resource Monitoring (skills/system_control.py)
+System management controls:
+  • Screenshots: Captures screens using `pyautogui` and saves them in the 
+    `screenshots` directory.
+  • Info Queries: Collects CPU percent, RAM usage, and battery state via `psutil`.
+  • Power Control: Schedules Windows shutdowns or restarts using `shutdown` CLI calls.
+  • Lock Screen: Locks workstation using Windows API `rundll32.exe user32.dll,LockWorkStation`.
+  • Audio Control: Sets volume levels or mutes system using `pycaw`. Falls back to 
+    `keyboard` keys if `pycaw` is not installed.
+  • Process Control: Matches applications to executables and launches them, or 
+    closes running processes using `taskkill`.
+
+7.5 File & Folder Operations (skills/file_ops.py)
+Local file operations:
+  • Path Extraction: Matches paths and extensions using regex.
+  • File Reading: Reads text files (up to 5,000 characters). Can summarize the text 
+    using the LLM.
+  • List Folders: Shows directory listings (up to 30 items) with type icons.
+  • Find Files: Searches the user's home folder for matching filenames, ignoring 
+    hidden and system directories.
+  • File Opening: Opens files using the default system application.
+
+7.6 Reminders & Calendar (skills/calendar_skill.py)
+Natural language time parsing and reminders:
+  • Relative Time: Matches relative terms ("in 10 minutes", "after 30 seconds") 
+    using regex and adds timedelta.
+  • Absolute Time: Matches absolute times ("tomorrow at 9am", "at 3:30pm") and 
+    sets dates.
+  • Extraction: Strips indicator words to identify the reminder title.
+  • Persistence: Saves reminders to the database.
+
+7.7 Browser Control & Clipboard (skills/browser_control.py)
+Web and clipboard control:
+  • Website Navigation: Opens URLs in the default browser.
+  • Web Queries: Opens search URLs on Google or YouTube.
+  • Clipboard Operations: Reads or writes text to the clipboard using `pyperclip`.
+
+7.8 Image Analysis (skills/image_input.py)
+Multimodal vision helper:
+  • Path Extraction Logic: Uses regular expressions to extract image paths from user query strings:
+    - Windows Absolute Paths: `[A-Za-z]:\\[^\s\"']+`
+    - Unix/Linux Paths: `/[^\s\"']+`
+    - Relative Extensions: Matches files ending in `.png`, `.jpg`, `.jpeg`, `.bmp`, `.gif`, or `.webp` (case-insensitive).
+  • Prompt Processing: Strips triggers (e.g., "analyze image", "describe", "what is in") and the file path to extract the natural language question. If no question is specified, defaults to "Please describe this image in detail."
+  • Multimodal Pipeline: Uses `PIL.Image` to load the target image, which is then passed alongside the extracted question to the google-genai client.
+  • API Integration Verification:
+    - SDK and client initialization are correct and functional.
+    - Verified using actual local screenshots in the `screenshots/` directory, confirming the API credentials (`GEMINI_API_KEY` in `.env`) are correctly configured and accepted by the server.
+    - Note on Quotas: In free-tier setups, the call is subject to Rate Limits/Daily Quotas (returning HTTP 429 RESOURCE_EXHAUSTED errors under heavy traffic), which JARVIS handles gracefully.
+
+7.9 Proactive System Monitoring (skills/proactive.py)
+Autonomous background jobs:
+  • check_system_resources: Runs periodically. Speaks warning messages if CPU 
+    usage or battery thresholds are crossed.
+  • check_reminders: Runs every minute. Plays alerts for due reminders and marks 
+    them as triggered.
+
+================================================================================
+8. BACKGROUND TASK SCHEDULERS & CONCURRENCY
+================================================================================
+
+J.A.R.V.I.S. uses `apscheduler.schedulers.background.BackgroundScheduler` for 
+non-blocking execution of background tasks. The scheduler starts when the application 
+launches and manages three jobs:
+  1. `Reminder Checker`: Runs `check_reminders` every 60 seconds. Uses 
+     `speak_async_fire` to play alerts.
+  2. `Proactive System Monitor`: Runs `check_system_resources` every 60 seconds 
+     to monitor CPU and battery.
+  3. `Nightly Summarizer`: Runs `run_nightly_summarization` at 23:59 to summarize 
+     the day's conversations.
+
+================================================================================
+9. ADVANCED BUG FIXES & OPTIMIZATIONS HISTORY
+================================================================================
+
+Important fixes applied to improve system reliability:
+  • Audio Playback: Locked `playsound` version to `1.2.2` to resolve playback 
+    failures on Windows.
+  • Whisper Hallucination Filter: Configured `initial_prompt` with common 
+    commands to prevent Whisper from transcribing silence as random words.
+  • Whisper Model: Pinned to `tiny` for faster startup and lower resource usage.
+  • TTS Voice: Updated default voice to `en-GB-RyanNeural` to prevent errors 
+    caused by invalid voice configurations.
+  • Timeouts: Increased phrase timeout to 3.0s to accommodate natural pauses 
+    during speech.
+  • Speech Calibration: Lowered energy threshold to 300 to capture quieter speech.
+  • Temporary Files: Handled exceptions during file cleanup to prevent resource 
+    leaks if TTS generation fails.
+
+================================================================================
+10. EXTERNAL LIBRARIES & SYSTEM DEPENDENCIES
+================================================================================
+
+Key libraries used in the project:
+  • speechrecognition: Local microphone capture and Google STT client.
+  • sounddevice & numpy: Continuous audio capture and buffer handling.
+  • whisper (openai-whisper): Offline transcription model.
+  • edge-tts: Free Microsoft Edge TTS API client.
+  • google-genai: API client for Gemini models.
+  • groq: API client for Groq models.
+  • playsound (==1.2.2): Audio playback utility.
+  • duckduckgo-search: Anonymous search API wrapper.
+  • wikipedia: Interface for Wikipedia search.
+  • requests: HTTP library for APIs (OpenWeatherMap, NewsAPI).
+  • pyautogui: Controls screenshots.
+  • psutil: System usage diagnostics.
+  • pyperclip: Clipboard utility.
+  • keyboard: Controls fallback volume buttons.
+  • apscheduler: Background task runner.
+  • pycaw & comtypes: Windows Core Audio API control.
+  • python-dotenv: Environment variable loader.
+
+================================================================================
+Documentation completed: 2026-05-24
+================================================================================
