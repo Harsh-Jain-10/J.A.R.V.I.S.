@@ -17,7 +17,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_SEARCH_ROOT = Path.home()   # Start searches from user's home directory
+_DEFAULT_SEARCH_ROOT = Path.home()   
 
 
 def _find_files(name: str, root: Optional[Path] = None) -> list[Path]:
@@ -26,7 +26,7 @@ def _find_files(name: str, root: Optional[Path] = None) -> list[Path]:
     matches: list[Path] = []
     try:
         for dirpath, dirnames, filenames in os.walk(root):
-            # Skip hidden/system directories to keep it fast
+            
             dirnames[:] = [
                 d for d in dirnames
                 if not d.startswith(".") and d not in {"$Recycle.Bin", "Windows", "Program Files"}
