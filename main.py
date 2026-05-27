@@ -14,7 +14,7 @@ import sys
 import time
 from datetime import datetime
 
-# ── Logging setup (before any imports that use it) ────────────────────────────
+# ── Logging setup (before any imports that use it) ─────────
 from config import LOG_LEVEL, LOG_FILE, USER_NAME
 
 logging.basicConfig(
@@ -27,7 +27,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("JARVIS")
 
-# ── Core imports ──────────────────────────────────────────────────────────────
+# ── Core imports ───────────────────────────────────────
 from memory.db import initialize_db, save_conversation
 from memory.db import dismiss_stale_reminders
 from core.brain import Brain
@@ -49,10 +49,10 @@ from skills import (
     proactive,
 )
 
-# ── Scheduler ─────────────────────────────────────────────────────────────────
-from apscheduler.schedulers.background import BackgroundScheduler  # type: ignore
-from apscheduler.triggers.cron import CronTrigger  # type: ignore
-from apscheduler.triggers.interval import IntervalTrigger  # type: ignore
+# ── Scheduler ────────────────────────────────────────
+from apscheduler.schedulers.background import BackgroundScheduler  
+from apscheduler.triggers.cron import CronTrigger  
+from apscheduler.triggers.interval import IntervalTrigger  
 from config import (
     NIGHTLY_SUMMARY_HOUR,
     NIGHTLY_SUMMARY_MINUTE,
