@@ -9,6 +9,7 @@ import os
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from datetime import datetime
 
 # Configure sys.path to resolve project root imports
 sys.path.append(str(Path(__file__).parent.absolute()))
@@ -144,24 +145,25 @@ class JarvisVoiceCommandsTest(unittest.TestCase):
             conn.close()
 
         # 2. Insert test conversations
+        today_str = datetime.now().date().isoformat()
         conn = memory.db._get_connection()
         try:
             # Earlier session conversation
             conn.execute(
                 "INSERT INTO conversations (date, timestamp, user_input, jarvis_response) VALUES (?, ?, ?, ?)",
-                ("2026-06-11", "2026-06-11T11:00:00", "what is 5+5?", "It is 10, Sir.")
+                (today_str, f"{today_str}T11:00:00", "what is 5+5?", "It is 10, Sir.")
             )
             # Current session conversation
             conn.execute(
                 "INSERT INTO conversations (date, timestamp, user_input, jarvis_response) VALUES (?, ?, ?, ?)",
-                ("2026-06-11", "2026-06-11T13:00:00", "my name is Harsh", "Understood, Harsh.")
+                (today_str, f"{today_str}T13:00:00", "my name is Harsh", "Understood, Harsh.")
             )
             conn.commit()
         finally:
             conn.close()
 
         # 3. Call build_context_block with mocked SESSION_START
-        with patch('memory.context_manager.SESSION_START', '2026-06-11T12:00:00'), \
+        with patch('memory.context_manager.SESSION_START', f"{today_str}T12:00:00"), \
              patch('memory.context_manager.get_recent_summaries', return_value=[]):
             context_block = memory.context_manager.build_context_block()
 

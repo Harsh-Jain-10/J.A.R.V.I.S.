@@ -66,12 +66,16 @@ _CHAT_KEYWORDS = [
     "what is the time", "what's the time", "current time", "time now",
     "what time is it", "tell me the time", "what is today's date",
     "aaj kya date hai", "aaj kaunsa din hai", "kya time hai",
+    "date and time", "time and date", "current date and time", "current time and date",
+    "what is time", "what is date", "current time", "current date", "tell me time", "tell me date",
+    "tell the time", "tell the date",
     # Greetings / small-talk
     "hello", "hi jarvis", "hey", "good morning", "good evening", "good night",
     "how are you", "what's up", "kya haal",
     # Self-referential
     "who are you", "what can you do", "your name",
 ]
+
 
 # Fast-path NEWS keywords
 _NEWS_KEYWORDS = [
@@ -142,6 +146,12 @@ def _llm_classify(text: str, brain) -> str:
         for candidate in _VALID_INTENTS:
             if candidate in label:
                 logger.debug("LLM classified intent: %s", candidate)
+                # Overrule NEWS if it's a general query with no news keywords
+                if candidate == "NEWS":
+                    news_kws = ["news", "headline", "stories", "happening", "khabar", "samachar"]
+                    if not any(kw in text.lower() for kw in news_kws):
+                        logger.debug("NEWS overrule: no news keyword found, redirecting to WEB_SEARCH")
+                        return "WEB_SEARCH"
                 return candidate
     except Exception as exc:
         logger.error("LLM intent classification failed: %s", exc)
