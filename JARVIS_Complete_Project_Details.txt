@@ -119,7 +119,6 @@ JARVIS/
     ├── file_ops.py            # Local files recursive search, read, list, and open
     ├── calendar_skill.py      # Reminders parser and calendar listing
     ├── browser_control.py     # Web browser site navigation and clipboard operations
-    ├── image_input.py         # Image processing via Gemini Vision models
     └── proactive.py           # Background schedulers for CPU, battery, and reminders
 
 ================================================================================
@@ -356,21 +355,7 @@ Web and clipboard control:
   • Website Navigation: Opens URLs in the default browser.
   • Web Queries: Opens search URLs on Google or YouTube.
   • Clipboard Operations: Reads or writes text to the clipboard using `pyperclip`.
-
-7.8 Image Analysis (skills/image_input.py)
-Multimodal vision helper:
-  • Path Extraction Logic: Uses regular expressions to extract image paths from user query strings:
-    - Windows Absolute Paths: `[A-Za-z]:\\[^\s\"']+`
-    - Unix/Linux Paths: `/[^\s\"']+`
-    - Relative Extensions: Matches files ending in `.png`, `.jpg`, `.jpeg`, `.bmp`, `.gif`, or `.webp` (case-insensitive).
-  • Prompt Processing: Strips triggers (e.g., "analyze image", "describe", "what is in") and the file path to extract the natural language question. If no question is specified, defaults to "Please describe this image in detail."
-  • Multimodal Pipeline: Uses `PIL.Image` to load the target image, which is then passed alongside the extracted question to the google-genai client.
-  • API Integration Verification:
-    - SDK and client initialization are correct and functional.
-    - Verified using actual local screenshots in the `screenshots/` directory, confirming the API credentials (`GEMINI_API_KEY` in `.env`) are correctly configured and accepted by the server.
-    - Note on Quotas: In free-tier setups, the call is subject to Rate Limits/Daily Quotas (returning HTTP 429 RESOURCE_EXHAUSTED errors under heavy traffic), which JARVIS handles gracefully.
-
-7.9 Proactive System Monitoring (skills/proactive.py)
+7.8 Proactive System Monitoring (skills/proactive.py)
 Autonomous background jobs:
   • check_system_resources: Runs periodically. Speaks warning messages if CPU 
     usage or battery thresholds are crossed.
