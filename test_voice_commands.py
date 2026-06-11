@@ -17,6 +17,7 @@ import main
 import core.speaker
 import core.brain
 import memory.db
+import memory.context_manager
 
 # Reconfigure stdout to use UTF-8
 if hasattr(sys.stdout, 'reconfigure'):
@@ -131,6 +132,47 @@ class JarvisVoiceCommandsTest(unittest.TestCase):
         pass_rate = (passed_count / total) * 100
         print(f"\nCompleted: {passed_count}/{total} passed ({pass_rate:.1f}%)\n")
         self.assertGreaterEqual(pass_rate, 90.0, "Pass rate is below 90%!")
+
+    def test_contextual_memory_handling(self):
+        """Test that the context manager correctly splits earlier sessions and current session history."""
+        # 1. Clean the database table to prevent interference
+        conn = memory.db._get_connection()
+        try:
+            conn.execute("DELETE FROM conversations")
+            conn.commit()
+        finally:
+            conn.close()
+
+        # 2. Insert test conversations
+        conn = memory.db._get_connection()
+        try:
+            # Earlier session conversation
+            conn.execute(
+                "INSERT INTO conversations (date, timestamp, user_input, jarvis_response) VALUES (?, ?, ?, ?)",
+                ("2026-06-11", "2026-06-11T11:00:00", "what is 5+5?", "It is 10, Sir.")
+            )
+            # Current session conversation
+            conn.execute(
+                "INSERT INTO conversations (date, timestamp, user_input, jarvis_response) VALUES (?, ?, ?, ?)",
+                ("2026-06-11", "2026-06-11T13:00:00", "my name is Harsh", "Understood, Harsh.")
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        # 3. Call build_context_block with mocked SESSION_START
+        with patch('memory.context_manager.SESSION_START', '2026-06-11T12:00:00'), \
+             patch('memory.context_manager.get_recent_summaries', return_value=[]):
+            context_block = memory.context_manager.build_context_block()
+
+        # 4. Verify context block layout
+        print("\nGenerated Context Block for Verification:")
+        print(context_block)
+        
+        self.assertIn("(Earlier Sessions Today)", context_block)
+        self.assertIn("what is 5+5?", context_block)
+        self.assertIn("(Current Session)", context_block)
+        self.assertIn("my name is Harsh", context_block)
 
 
 if __name__ == "__main__":
