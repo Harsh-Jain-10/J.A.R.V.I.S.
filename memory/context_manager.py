@@ -7,8 +7,12 @@ Pulls:
 """
 
 import logging
-from memory.db import get_today_conversations, get_recent_summaries
-from config import CONTEXT_RECENT_MESSAGES, CONTEXT_DAILY_SUMMARIES
+from memory.db import (
+    get_session_conversations,
+    get_today_conversations_before_session,
+    get_recent_summaries,
+)
+from config import CONTEXT_RECENT_MESSAGES, CONTEXT_DAILY_SUMMARIES, SESSION_START
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +24,36 @@ def build_context_block() -> str:
     """
     sections: list[str] = []
 
-    # ── Recent conversations from today ───────────────────────────────────────
+    # ── Today's Conversations (Current Session + Earlier Today) ───────────────
     try:
-        today_convos = get_today_conversations(limit=CONTEXT_RECENT_MESSAGES)
-        if today_convos:
-            lines = ["[MEMORY — Today's Conversation History]"]
-            for entry in today_convos:
+        session_convos = get_session_conversations(SESSION_START)
+    except Exception as exc:
+        logger.error("Error fetching session conversations: %s", exc)
+        session_convos = []
+
+    try:
+        earlier_convos = get_today_conversations_before_session(SESSION_START, limit=CONTEXT_RECENT_MESSAGES)
+    except Exception as exc:
+        logger.error("Error fetching earlier today's conversations: %s", exc)
+        earlier_convos = []
+
+    if earlier_convos or session_convos:
+        lines = ["[MEMORY — Today's Conversation History]"]
+        if earlier_convos:
+            lines.append("  (Earlier Sessions Today)")
+            for entry in earlier_convos:
                 ts = entry.get("timestamp", "")
                 lines.append(f"  [{ts}] User: {entry['user_input']}")
                 lines.append(f"          JARVIS: {entry['jarvis_response']}")
-            sections.append("\n".join(lines))
-    except Exception as exc:
-        logger.error("Error fetching today's conversations: %s", exc)
+            if session_convos:
+                lines.append("")  # Empty line separator between sessions
+        if session_convos:
+            lines.append("  (Current Session)")
+            for entry in session_convos:
+                ts = entry.get("timestamp", "")
+                lines.append(f"  [{ts}] User: {entry['user_input']}")
+                lines.append(f"          JARVIS: {entry['jarvis_response']}")
+        sections.append("\n".join(lines))
 
     # ── Past daily summaries ──────────────────────────────────────────────────
     try:

@@ -101,6 +101,46 @@ def get_today_conversations(limit: int = 10) -> list[dict]:
         conn.close()
 
 
+def get_session_conversations(session_start: str) -> list[dict]:
+    """Return all conversations from the current runtime session, sorted chronologically."""
+    conn = _get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT user_input, jarvis_response, timestamp "
+            "FROM conversations WHERE timestamp >= ? "
+            "ORDER BY id ASC",
+            (session_start,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    except Exception as exc:
+        logger.error("get_session_conversations error: %s", exc)
+        return []
+    finally:
+        conn.close()
+
+
+def get_today_conversations_before_session(session_start: str, limit: int = 10) -> list[dict]:
+    """Return up to *limit* conversations from earlier today (before the current session),
+    sorted chronologically.
+    """
+    today = date.today().isoformat()
+    conn = _get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT user_input, jarvis_response, timestamp "
+            "FROM conversations WHERE date = ? AND timestamp < ? "
+            "ORDER BY id DESC LIMIT ?",
+            (today, session_start, limit),
+        ).fetchall()
+        return [dict(r) for r in reversed(rows)]
+    except Exception as exc:
+        logger.error("get_today_conversations_before_session error: %s", exc)
+        return []
+    finally:
+        conn.close()
+
+
+
 def get_conversations_for_date(target_date: str) -> list[dict]:
     """Return all conversations for a specific date string (YYYY-MM-DD)."""
     conn = _get_connection()

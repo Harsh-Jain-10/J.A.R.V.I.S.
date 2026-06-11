@@ -92,3 +92,7 @@ REMINDER_CHECK_INTERVAL: int = 60    # seconds
 # ── Logging ───────────────────────────────────────────────────────────────────
 LOG_LEVEL: str = "INFO"
 LOG_FILE: str = "jarvis.log"
+
+# ── Session Start (timestamp for current runtime execution) ───────────────────
+SESSION_START: str = datetime.now().isoformat(timespec="seconds")
+
