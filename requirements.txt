@@ -20,4 +20,5 @@ numpy
 pycaw
 comtypes
 websockets
-
+curl_cffi
+beautifulsoup4
