@@ -35,7 +35,7 @@ SPEECH_PHRASE_TIMEOUT: float = 3.0    # FIX: was 1.0 — too short for natural s
 SPEECH_TIMEOUT: float = 10.0
 
 # ── TTS ───────────────────────────────────────────────────────────────────────
-TTS_VOICE: str = "en-GB-RyanNeural"  # FIX Bug 4: ChristopherNeural caused 'No audio received'; RyanNeural is confirmed working and closest to MCU JARVIS
+TTS_VOICE: str = "en-GB-RyanNeural"  
 TTS_RATE: str = "-8%"       # Slightly slower = more authoritative, less robotic
 TTS_VOLUME: str = "+0%"
 TTS_OUTPUT_FILE: str = "jarvis_tts_output.mp3"
