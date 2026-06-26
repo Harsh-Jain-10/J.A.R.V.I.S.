@@ -100,7 +100,7 @@ def _open_file(path: str) -> str:
         return f"I was unable to open the file: {exc}"
 
 
-# ── Main handler ──────────────────────────────────────────────────────────────
+# ── Main handler ────────────────
 
 def handle(query: str, brain=None) -> str:
     lowered = query.lower()
